@@ -5,10 +5,17 @@ from __future__ import annotations
 import argparse
 import subprocess
 from pathlib import Path
-from typing import Dict
 
-TEMPLATES: Dict[str, str] = {
-    "journal": "# Trade Journal\n\n- Date: {{date}}\n- Ticker: {{ticker}}\n- Thesis: \n- Entry/Exit: \n- R:R: \n- Notes:\n",
+TEMPLATES: dict[str, str] = {
+    "journal": (
+        "# Trade Journal\n\n"
+        "- Date: {{date}}\n"
+        "- Ticker: {{ticker}}\n"
+        "- Thesis: \n"
+        "- Entry/Exit: \n"
+        "- R:R: \n"
+        "- Notes:\n"
+    ),
     "readme": "# {{name}}\n\n## Overview\n\n{{summary}}\n",
 }
 

@@ -2,7 +2,8 @@
 __pycache__/
 *.pyc
 .venv/
-.env
+.cache/
+data/rizzk.db
 
 # Obsidian noise
 obsidian/.obsidian/plugins/*
@@ -18,3 +19,8 @@ Thumbs.db
 
 # Streamlit
 .streamlit/
+.longcache/
+logs/
+backups/
+rizzk_terminal.egg-info/
+.env

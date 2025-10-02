@@ -1,28 +1,25 @@
 name: ci
+
 on:
   push:
-    branches: [ main ]
-  schedule:
-    - cron: "0 */6 * * *"
+  pull_request:
 
 jobs:
-  test-build:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: python -m py_compile $(git ls-files '*.py') || true
-      - name: Build container
-        run: docker build -f .devcontainer/Dockerfile -t rizzk-ci .
-      - name: Archive vault snapshot
+      - name: Install dependencies
         run: |
-          tar -czf obsidian_snapshot.tgz obsidian
-      - uses: actions/upload-artifact@v4
-        with:
-          name: obsidian_snapshot
-          path: obsidian_snapshot.tgz
+          python -m pip install -U pip
+          pip install -e .
+          pip install ruff pytest requests
+      - name: Lint
+        run: ruff check .
+      - name: Format check
+        run: ruff format --check .
+      - name: Tests
+        run: pytest -q

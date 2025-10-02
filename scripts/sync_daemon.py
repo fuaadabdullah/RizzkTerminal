@@ -7,7 +7,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
@@ -23,7 +22,7 @@ class DebouncedEventHandler(FileSystemEventHandler):
 
     def __init__(self) -> None:
         self._dirty = False
-        self._last_event: Optional[float] = None
+        self._last_event: float | None = None
 
     def on_any_event(self, event: FileSystemEvent) -> None:  # type: ignore[override]
         if event.is_directory:
@@ -39,7 +38,7 @@ class DebouncedEventHandler(FileSystemEventHandler):
         self._dirty = False
 
     @property
-    def last_event(self) -> Optional[float]:
+    def last_event(self) -> float | None:
         return self._last_event
 
 
