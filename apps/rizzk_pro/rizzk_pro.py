@@ -67,6 +67,10 @@ def _init_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+WatchlistRow = dict[str, Any]
+NewsFeedItem = dict[str, Any]
+
+
 @st.cache_resource
 def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -76,7 +80,7 @@ def get_db() -> sqlite3.Connection:
 
 
 @st.cache_data(ttl=300)
-def fetch_watchlist() -> list[dict[str, Any]]:
+def fetch_watchlist() -> list[WatchlistRow]:
     conn = get_db()
     rows = conn.execute(
         "SELECT symbol, note, created_at, updated_at FROM watchlist ORDER BY symbol"
@@ -249,7 +253,7 @@ def next_market_event(now: datetime) -> str:
 
 # Alpha Vantage News
 @st.cache_data(ttl=600)
-def fetch_av_news(tickers: tuple[str, ...], limit: int = 20) -> list[dict[str, Any]]:
+def fetch_av_news(tickers: tuple[str, ...], limit: int = 20) -> list[NewsFeedItem]:
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "")
     if not key:
         return []
