@@ -144,4 +144,11 @@ If any step fails, fix the pipeline before trusting the backups.
 
 Protect `main` with required status checks and at least one code review. Only merge when CI is green so the automation remains trustworthy.
 
+## Merge conflict playbook
+
+Conflicts usually appear when mobile Obsidian edits and desktop automation both touch the vault. When it happens, follow
+[`docs/conflict-playbook.md`](docs/conflict-playbook.md) for the quick resolution recipe: sync `main`, rebase (or merge), keep
+upstream copies of infrastructure files, keep this branch’s application code, and finish with a `pre-commit`/`pytest` sweep before
+pushing. The playbook also captures the `merge=ours` seatbelt to keep the vault from starting new fights.
+
 Ship the checklist once—after that you can iterate on code or notes and let the automations keep everything synchronised.
