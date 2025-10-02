@@ -1,10 +1,15 @@
 # rizzk_pro.py  — Rizzk Trading Terminal
 from __future__ import annotations
 
-import io, os, json
+import io
+import json
+import logging
+import logging.handlers
+import os
 from pathlib import Path
 from datetime import datetime, time, timedelta
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -19,8 +24,31 @@ load_dotenv(override=False)
 
 # -------- app setup --------
 st.set_page_config(page_title="Rizzk Trading Terminal", page_icon="📈", layout="wide")
-DATA_DIR = Path("./data"); DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR = Path("./data")
+DATA_DIR.mkdir(exist_ok=True)
 JOURNAL_PATH = DATA_DIR / "journal.json"
+LOG_DIR = Path("./logs")
+LOG_DIR.mkdir(exist_ok=True)
+
+
+def _configure_logging() -> logging.Logger:
+    """Set up a rotating file handler so exceptions are preserved."""
+
+    logger = logging.getLogger("rizzk")
+    if logger.handlers:
+        return logger
+
+    handler = logging.handlers.RotatingFileHandler(
+        LOG_DIR / "app.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8"
+    )
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    handler.setFormatter(formatter)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+
+logger = _configure_logging()
 
 # -------- sidebar --------
 st.sidebar.header("Settings")
@@ -61,6 +89,7 @@ def fetch_stooq_history(sym: str, period: str = "6mo") -> pd.DataFrame:
         df["Symbol"] = sym
         return df
     except Exception:
+        logger.exception("Falling back to synthetic data for %s", sym)
         idx = pd.date_range(end=datetime.today(), periods=120, freq="B")
         base = 100 + np.cumsum(np.random.normal(0, 1, size=len(idx)))
         df = pd.DataFrame({
@@ -93,30 +122,40 @@ def rsi(series: pd.Series, win: int = 14) -> pd.Series:
     return out.fillna(50.0)
 
 # Market clock (America/New_York)
+NY_TZ = ZoneInfo("America/New_York")
+
+
+def ny_session_bounds(reference: datetime) -> tuple[datetime, datetime]:
+    ref = reference if reference.tzinfo else reference.replace(tzinfo=NY_TZ)
+    ref_ny = ref.astimezone(NY_TZ)
+    open_dt = datetime.combine(ref_ny.date(), time(9, 30), tzinfo=NY_TZ)
+    close_dt = datetime.combine(ref_ny.date(), time(16, 0), tzinfo=NY_TZ)
+    return open_dt, close_dt
+
+
 def is_market_open(now: datetime) -> bool:
-    # naive check: Mon-Fri 9:30-16:00 ET (no holidays)
-    wd = now.weekday()
-    if wd >= 5: return False
-    # treat local machine time as ET for simplicity
-    open_t  = time(9,30)
-    close_t = time(16,0)
-    return open_t <= now.time() <= close_t
+    ref = now if now.tzinfo else now.replace(tzinfo=NY_TZ)
+    wd = ref.astimezone(NY_TZ).weekday()
+    if wd >= 5:
+        return False
+    open_dt, close_dt = ny_session_bounds(now)
+    return open_dt <= now <= close_dt
+
 
 def next_market_event(now: datetime) -> str:
     if is_market_open(now):
-        return "Market OPEN until 4:00 PM ET"
+        close_dt = ny_session_bounds(now)[1]
+        return f"Market OPEN until {close_dt.strftime('%I:%M %p %Z')}"
 
-    # Determine the first candidate for the next open (9:30 AM ET).
-    if now.time() < time(9, 30):
-        next_open = datetime.combine(now.date(), time(9, 30))
-    else:
-        next_open = datetime.combine(now.date() + timedelta(days=1), time(9, 30))
+    next_open, _ = ny_session_bounds(now)
+    if now >= next_open:
+        next_day = now + timedelta(days=1)
+        next_open, _ = ny_session_bounds(next_day)
 
-    # Skip weekends.
     while next_open.weekday() >= 5:
         next_open += timedelta(days=1)
 
-    return f"Next open: {next_open.strftime('%a %b %d, %I:%M %p')} ET"
+    return f"Next open: {next_open.strftime('%a %b %d, %I:%M %p %Z')}"
 
 # Alpha Vantage News
 def fetch_av_news(tickers: List[str], limit: int = 20) -> List[Dict[str, Any]]:
@@ -130,11 +169,12 @@ def fetch_av_news(tickers: List[str], limit: int = 20) -> List[Dict[str, Any]]:
         data = r.json()
         return data.get("feed", [])
     except Exception:
+        logger.exception("Alpha Vantage news fetch failed")
         return []
 
 # -------- UI --------
 st.title("Rizzk Trading Terminal 📈")
-now = datetime.now()
+now = datetime.now(tz=NY_TZ)
 st.caption("Education only. Not financial advice.")
 st.info(("🟢 " if is_market_open(now) else "🔴 ") + next_market_event(now))
 
@@ -260,6 +300,7 @@ def _yah_predefined(name: str) -> List[Dict[str, Any]]:
         quotes = (result[0].get("quotes", []) if result else [])
         return quotes if isinstance(quotes, list) else []
     except Exception:
+        logger.exception("Yahoo predefined screener fetch failed", extra={"list": name})
         return []
 
 def _yah_trending() -> List[Dict[str, Any]]:
@@ -271,6 +312,7 @@ def _yah_trending() -> List[Dict[str, Any]]:
         quotes = (result[0].get("quotes", []) if result else [])
         return quotes if isinstance(quotes, list) else []
     except Exception:
+        logger.exception("Yahoo trending fetch failed")
         return []
 
 with tabs[2]:
@@ -307,11 +349,11 @@ with tabs[3]:
             try:
                 st.session_state.journal = json.loads(JOURNAL_PATH.read_text("utf-8"))
             except Exception:
-                pass
+                logger.exception("Failed to load journal file")
 
     if st.button("Add Note", type="primary"):
         st.session_state.journal.append({
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "time": datetime.now(tz=NY_TZ).strftime("%Y-%m-%d %H:%M:%S %Z"),
             "symbol": j_symbol, "tag": j_tag, "text": j_text
         })
         JOURNAL_PATH.write_text(json.dumps(st.session_state.journal, indent=2), encoding="utf-8")
@@ -371,5 +413,6 @@ with tabs[5]:
                 answer = completion["choices"][0]["message"]["content"].strip()
                 st.session_state.messages.append({"role":"assistant","content":answer})
                 st.write(answer)
-            except Exception as e:
-                st.error(f"Assistant error: {e}")
+            except Exception:
+                logger.exception("Assistant error")
+                st.error("Assistant error: check logs for details.")
