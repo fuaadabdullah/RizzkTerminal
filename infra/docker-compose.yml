@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: bash -lc "pip install -r requirements.txt && streamlit run apps/rizzk_pro/rizzk_pro.py --server.port=8501 --server.headless=true"
+    volumes:
+      - ..:/work
+    working_dir: /work
+    ports:
+      - "8501:8501"
+    environment:
+      - RIZZK_VAULT=/work/obsidian
+      - RIZZK_EXPORTS=/work/obsidian/90_exports
+  sync:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: bash -lc "pip install watchdog python-dotenv && python scripts/sync_daemon.py"
+    volumes:
+      - ..:/work
+    working_dir: /work
+    environment:
+      - RIZZK_VAULT=/work/obsidian
+      - RIZZK_EXPORTS=/work/obsidian/90_exports

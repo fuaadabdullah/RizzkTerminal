@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run app",
+      "type": "shell",
+      "command": "docker compose -f infra/docker-compose.yml up --build app",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run sync",
+      "type": "shell",
+      "command": "docker compose -f infra/docker-compose.yml up --build sync",
+      "problemMatcher": []
+    }
+  ]
+}
