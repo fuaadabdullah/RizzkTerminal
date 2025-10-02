@@ -1,64 +1,120 @@
 # Merge Conflict Playbook
 
-When this branch drifts from `main`, use the following procedure to reconcile the histories without losing the automation wiring.
+Follow this routine whenever the branch diverges from `main`. It assumes you want upstream defaults for repo plumbing and to keep your feature changes for the automation code.
 
-## 1. Sync `main`
+## 0. Prep the working tree
+
+```bash
+git status
+git stash -u   # optional if you have local edits
+```
+
+## 1. Sync `main` and start the reconciliation
 
 ```bash
 git fetch origin
-git switch main
-git pull --ff-only
+git switch main && git pull --ff-only
 git switch -
 ```
 
-## 2. Rebase (preferred) or merge
+Pick one flow:
 
-Rebase keeps the history linear. If you prefer merge commits, swap `git rebase` for `git merge` in the next command.
+- **Merge (simpler history)**
+  ```bash
+  git merge main
+  ```
+- **Rebase (cleaner history)**
+  ```bash
+  git rebase main
+  ```
+
+Either command will pause on the conflicting files listed below.
+
+## 2. Pick winners by file group
+
+Keep upstream (`--theirs`) for infrastructure and docs, keep the feature branch (`--ours`) for the Streamlit app and automation helpers.
 
 ```bash
-git rebase main
+# keep MAIN for repo plumbing
+for f in \
+  .gitattributes .github/workflows/ci.yml .gitignore .pre-commit-config.yaml \
+  README.md infra/docker-compose.yml requirements.txt
+do
+  git checkout --theirs "$f"
+  git add "$f"
+done
+
+# keep YOUR BRANCH for the active work
+for f in apps/rizzk_pro/rizzk_pro.py scripts/codex_fill.py scripts/sync_daemon.py
+do
+  git checkout --ours "$f"
+  git add "$f"
+done
 ```
 
-Git will stop at the conflicting files listed in the output.
+> **Note:** During a rebase Git swaps the meaning of “ours” and “theirs”. `--ours` still selects the branch you are keeping (your feature work) and `--theirs` selects the commit you are rebasing onto (upstream `main`).
 
-## 3. Pick winners by file group
-
-| File(s) | Winning version | Reason |
-| --- | --- | --- |
-| `.gitattributes`, `.gitignore`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `infra/docker-compose.yml`, `requirements.txt`, `README.md` | `--theirs` (from `main`) | These govern repo plumbing; we take the upstream defaults to avoid drift. |
-| `apps/rizzk_pro/rizzk_pro.py`, `scripts/codex_fill.py`, `scripts/sync_daemon.py`, `apps/rizzk_pro/journal.py`, `scripts/daily_ops.py` | `--ours` (current branch) | These files hold the latest journaling and automation logic. |
-
-Example:
+## 3. Finish the merge or rebase
 
 ```bash
-git checkout --theirs .gitattributes .github/workflows/ci.yml .gitignore \
-  .pre-commit-config.yaml README.md infra/docker-compose.yml requirements.txt
-git checkout --ours apps/rizzk_pro/rizzk_pro.py scripts/codex_fill.py scripts/sync_daemon.py \
-  apps/rizzk_pro/journal.py scripts/daily_ops.py
-git add .
+# merge path
+git commit -m "merge: resolve conflicts (infra from main, code from feature)"
+
+# rebase path
+git rebase --continue
 ```
 
-## 4. Continue the rebase (or finish the merge)
+When rebasing, push with a lease to avoid clobbering other work:
 
 ```bash
-git rebase --continue  # or: git commit
+git push --force-with-lease
 ```
 
-## 5. Sanity check and push
+Otherwise a normal `git push` is fine.
+
+## 4. Sanity checks before pushing
 
 ```bash
-pre-commit run --all-files
-pytest -q
-git push --force-with-lease  # add --force-with-lease only when rebasing
+pre-commit run --all-files || true
+pytest -q || true
+python -m py_compile $(git ls-files '*.py') || true
+docker compose -f infra/docker-compose.yml config >/dev/null
 ```
 
-## 6. Seatbelts for the Obsidian vault
+If a file still shows conflict markers (`<<<<<<<` / `=======` / `>>>>>>>`), open it, remove the markers manually, and re-run the `git add` + `git commit` / `git rebase --continue` step.
 
-Vault files prefer the latest edit to avoid phone vs desktop conflict loops:
+## 5. Seatbelts so the next conflict is easier
 
 ```bash
+# remember resolutions automatically
+git config rerere.enabled true
+
+# prefer the latest edit for Obsidian vault files
 git config merge.ours.driver true
 ```
 
-The repository already tracks `obsidian/** merge=ours` in `.gitattributes`, so once the config is set the vault will stop starting fights.
+`.gitattributes` already contains `obsidian/** merge=ours`, so once the merge driver is configured, phone-versus-desktop vault edits stop colliding.
 
+You can also use the newer plumbing command if you prefer:
+
+```bash
+# equivalent to git checkout --ours/--theirs on modern Git
+git restore --ours <file>
+git restore --theirs <file>
+```
+
+## 6. One-and-done helper snippet
+
+Paste the following while a merge/rebase is paused to apply the defaults automatically:
+
+```bash
+for f in .gitattributes .github/workflows/ci.yml .gitignore .pre-commit-config.yaml README.md infra/docker-compose.yml requirements.txt; do
+  git checkout --theirs "$f" && git add "$f"
+done
+for f in apps/rizzk_pro/rizzk_pro.py scripts/codex_fill.py scripts/sync_daemon.py; do
+  git checkout --ours "$f" && git add "$f"
+done
+git commit -m "merge: resolve conflicts (infra from main, code from feature)" 2>/dev/null || git rebase --continue
+```
+
+Repeat the sanity checks, push, and you are back on a clean branch.

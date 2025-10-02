@@ -147,8 +147,9 @@ Protect `main` with required status checks and at least one code review. Only me
 ## Merge conflict playbook
 
 Conflicts usually appear when mobile Obsidian edits and desktop automation both touch the vault. When it happens, follow
-[`docs/conflict-playbook.md`](docs/conflict-playbook.md) for the quick resolution recipe: sync `main`, rebase (or merge), keep
-upstream copies of infrastructure files, keep this branch’s application code, and finish with a `pre-commit`/`pytest` sweep before
-pushing. The playbook also captures the `merge=ours` seatbelt to keep the vault from starting new fights.
+[`docs/conflict-playbook.md`](docs/conflict-playbook.md) for the quick resolution recipe: stash if needed, sync `main`, run a merge
+or rebase, accept upstream copies of infrastructure files, keep this branch’s application code, and finish with the `pre-commit` /
+`pytest` sweep before pushing. The playbook now also calls out enabling `git config rerere.enabled true` so Git remembers the
+resolutions alongside the `merge=ours` seatbelt that keeps the vault from starting new fights.
 
 Ship the checklist once—after that you can iterate on code or notes and let the automations keep everything synchronised.
