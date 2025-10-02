@@ -14,10 +14,10 @@ import pandas as pd
 class DataSource:
     """Interface for retrieving data for the UI."""
 
-    def get_ohlc(self, symbol: str, days: int = 200) -> pd.DataFrame:  # pragma: no cover - interface
+    def get_ohlc(self, symbol: str, days: int = 200) -> pd.DataFrame:  # pragma: no cover
         raise NotImplementedError
 
-    def get_news(self, symbol: str, limit: int = 20) -> list[dict]:  # pragma: no cover - interface
+    def get_news(self, symbol: str, limit: int = 20) -> list[dict]:  # pragma: no cover
         raise NotImplementedError
 
 
