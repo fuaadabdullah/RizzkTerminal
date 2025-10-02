@@ -14,9 +14,9 @@ from dash import (
     Input,
     Output,
     State,
+    dash_table,
     dcc,
     html,
-    dash_table,
 )
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -256,7 +256,8 @@ def make_ai_tab() -> html.Div:
             [
                 html.H3("AI Assistant"),
                 html.P(
-                    "OpenAI API key not configured. Add OPENAI_API_KEY to .env to enable AI features.",
+                    "OpenAI API key not configured. Add OPENAI_API_KEY to .env to enable AI "
+                    "features.",
                 ),
             ]
         )
