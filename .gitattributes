@@ -1,3 +1,4 @@
+# Prefer local vault state and use LFS for large assets
 obsidian/** merge=ours
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
