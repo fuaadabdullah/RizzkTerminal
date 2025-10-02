@@ -74,6 +74,7 @@ def stooq_url(sym: str, period: str) -> str:
     n = m.get(period, 132)
     return f"https://stooq.com/q/d/l/?s={sym.lower()}&i=d&c={n}"
 
+@st.cache_data(ttl=600)
 def fetch_stooq_history(sym: str, period: str = "6mo") -> pd.DataFrame:
     sym = normalize_symbol(sym)
     try:
@@ -158,7 +159,8 @@ def next_market_event(now: datetime) -> str:
     return f"Next open: {next_open.strftime('%a %b %d, %I:%M %p %Z')}"
 
 # Alpha Vantage News
-def fetch_av_news(tickers: List[str], limit: int = 20) -> List[Dict[str, Any]]:
+@st.cache_data(ttl=600)
+def fetch_av_news(tickers: tuple[str, ...], limit: int = 20) -> List[Dict[str, Any]]:
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "")
     if not key: return []
     # AlphaVantage supports comma-delimited tickers
@@ -288,6 +290,7 @@ with tabs[1]:
             st.altair_chart(dd_chart, use_container_width=True)
 
 # Screener
+@st.cache_data(ttl=600)
 def _yah_predefined(name: str) -> List[Dict[str, Any]]:
     mapping = {"Most Active":"most_actives","Top Gainers":"day_gainers","Top Losers":"day_losers"}
     scr_id = mapping.get(name, "")
@@ -303,6 +306,7 @@ def _yah_predefined(name: str) -> List[Dict[str, Any]]:
         logger.exception("Yahoo predefined screener fetch failed", extra={"list": name})
         return []
 
+@st.cache_data(ttl=600)
 def _yah_trending() -> List[Dict[str, Any]]:
     url = "https://query1.finance.yahoo.com/v1/finance/trending/us?lang=en-US&region=US"
     try:
@@ -367,7 +371,7 @@ with tabs[4]:
     st.subheader("News (Alpha Vantage)")
     tickers = st.text_input("Tickers (comma sep)", "AAPL,MSFT,SPY")
     if st.button("Fetch News", key="news_fetch"):
-        feed = fetch_av_news([s.strip() for s in tickers.split(",") if s.strip()], limit=30)
+        feed = fetch_av_news(tuple(s.strip() for s in tickers.split(",") if s.strip()), limit=30)
         if not feed:
             st.warning("No news returned (missing key or rate-limited).")
         else:
@@ -387,32 +391,42 @@ with tabs[4]:
 with tabs[5]:
     st.subheader("AI Trading Assistant")
     st.caption("Ask about indicators, entries, exits, risk, or how to use this app.")
-    import openai  # legacy SDK 0.28.1
-    if "messages" not in st.session_state:
-        st.session_state.messages = [{"role":"system","content":"You are a concise, realistic trading assistant. Be practical. Explain entries/exits, risk, and how to use this app."}]
+    try:
+        import openai  # legacy SDK 0.28.1
+        openai_available = True
+    except ImportError:
+        openai = None
+        openai_available = False
 
-    # render chat history
-    for m in st.session_state.messages[1:]:
-        with st.chat_message("user" if m["role"]=="user" else "assistant"):
-            st.write(m["content"])
+    if not openai_available:
+        st.warning("OpenAI SDK not installed. Install `openai` to enable the assistant.")
+    else:
+        if "messages" not in st.session_state:
+            st.session_state.messages = [{"role":"system","content":"You are a concise, realistic trading assistant. Be practical. Explain entries/exits, risk, and how to use this app."}]
 
-    prompt = st.chat_input("Ask something about markets or this app...")
-    if prompt:
-        st.session_state.messages.append({"role":"user","content":prompt})
-        with st.chat_message("assistant"):
-            try:
-                key = os.environ.get("OPENAI_API_KEY", "").strip()
-                if not key:
-                    raise RuntimeError("No OpenAI API key configured.")
-                openai.api_key = key
-                completion = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=st.session_state.messages,
-                    temperature=0.4,
-                )
-                answer = completion["choices"][0]["message"]["content"].strip()
-                st.session_state.messages.append({"role":"assistant","content":answer})
-                st.write(answer)
-            except Exception:
-                logger.exception("Assistant error")
-                st.error("Assistant error: check logs for details.")
+        # render chat history
+        for m in st.session_state.messages[1:]:
+            with st.chat_message("user" if m["role"]=="user" else "assistant"):
+                st.write(m["content"])
+
+        prompt = st.chat_input("Ask something about markets or this app...")
+        if prompt:
+            st.session_state.messages.append({"role":"user","content":prompt})
+            key = os.environ.get("OPENAI_API_KEY", "").strip()
+            if not key:
+                st.warning("Add an OpenAI API key in the sidebar to enable responses.")
+            else:
+                with st.chat_message("assistant"):
+                    try:
+                        openai.api_key = key
+                        completion = openai.ChatCompletion.create(
+                            model="gpt-3.5-turbo",
+                            messages=st.session_state.messages,
+                            temperature=0.4,
+                        )
+                        answer = completion["choices"][0]["message"]["content"].strip()
+                        st.session_state.messages.append({"role":"assistant","content":answer})
+                        st.write(answer)
+                    except Exception:
+                        logger.exception("Assistant error")
+                        st.error("Assistant error: check logs for details.")
