@@ -9,7 +9,7 @@ import os
 import sqlite3
 from datetime import datetime, time, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import altair as alt
@@ -76,7 +76,7 @@ def get_db() -> sqlite3.Connection:
 
 
 @st.cache_data(ttl=300)
-def fetch_watchlist() -> List[Dict[str, Any]]:
+def fetch_watchlist() -> list[dict[str, Any]]:
     conn = get_db()
     rows = conn.execute(
         "SELECT symbol, note, created_at, updated_at FROM watchlist ORDER BY symbol"
@@ -249,7 +249,7 @@ def next_market_event(now: datetime) -> str:
 
 # Alpha Vantage News
 @st.cache_data(ttl=600)
-def fetch_av_news(tickers: tuple[str, ...], limit: int = 20) -> List[Dict[str, Any]]:
+def fetch_av_news(tickers: tuple[str, ...], limit: int = 20) -> list[dict[str, Any]]:
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "")
     if not key:
         return []
@@ -378,7 +378,7 @@ with tabs[0]:
 # Backtest
 def backtest_sma_cross(
     df: pd.DataFrame, short: int = 10, long: int = 20, fee_bps: float = 1.0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     px = as_float_series(df["Close"]).fillna(0.0)
     s_sma = sma(px, short)
     l_sma = sma(px, long)
@@ -392,7 +392,7 @@ def backtest_sma_cross(
     eq_bh = (1 + ret).cumprod()
     eq_st = (1 + strat_ret).cumprod()
 
-    def _stats(eq: pd.Series) -> Dict[str, float]:
+    def _stats(eq: pd.Series) -> dict[str, float]:
         rets = eq.pct_change().fillna(0.0)
         cagr = (eq.iloc[-1] ** (252.0 / max(len(eq), 1))) - 1.0
         vol = rets.std() * np.sqrt(252.0)
@@ -473,7 +473,7 @@ with tabs[1]:
 
 # Screener
 @st.cache_data(ttl=600)
-def _yah_predefined(name: str) -> List[Dict[str, Any]]:
+def _yah_predefined(name: str) -> list[dict[str, Any]]:
     mapping = {
         "Most Active": "most_actives",
         "Top Gainers": "day_gainers",
@@ -496,7 +496,7 @@ def _yah_predefined(name: str) -> List[Dict[str, Any]]:
 
 
 @st.cache_data(ttl=600)
-def _yah_trending() -> List[Dict[str, Any]]:
+def _yah_trending() -> list[dict[str, Any]]:
     url = "https://query1.finance.yahoo.com/v1/finance/trending/us?lang=en-US&region=US"
     try:
         r = requests.get(url, timeout=10)
