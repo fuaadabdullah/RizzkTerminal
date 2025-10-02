@@ -42,18 +42,22 @@ def render_markdown() -> str:
     lines = [f"# Daily Ops — {today}", ""]
 
     winners = top_tickers()
+    lines.append("## Top tickers by R:R")
     if winners:
-        lines.append("## Top tickers by R:R")
         for ticker, avg_rr, count in winners:
             lines.append(f"- **{ticker}** · R:R {avg_rr:.2f} over {count} trades")
-        lines.append("")
+    else:
+        lines.append("- _No trades logged yet._")
+    lines.append("")
 
     exports = latest_exports()
+    lines.append("## Latest exports")
     if exports:
-        lines.append("## Latest exports")
         for path in exports:
             lines.append(f"- {path.name}")
-        lines.append("")
+    else:
+        lines.append("- _No exports found in obsidian/90_exports yet._")
+    lines.append("")
 
     lines.append("---")
     lines.append("Synced automatically by daily_ops.py")

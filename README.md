@@ -111,7 +111,7 @@ If GNU Make is unavailable (e.g., on Windows), install [`just`](https://github.c
   python scripts/trade_add.py --ticker MSFT --side long --entry 420 --stop 410 --exit 435 --qty 50 --thesis "VWAP reclaim"
   ```
   Override dollar risk/reward with `--risk`/`--reward` or adjust the guardrail via `--max-risk`.
-- `scripts/daily_ops.py` produces a daily dashboard note in `obsidian/00_inbox/` summarising top tickers by R:R and listing the newest exports. The cron container runs it hourly alongside `scripts/refresh_data.py`.
+- `scripts/daily_ops.py` produces a daily dashboard note in `obsidian/00_inbox/` summarising top tickers by R:R and listing the newest exports (with clear placeholders when no trades or exports exist yet). The cron container runs it hourly alongside `scripts/refresh_data.py`.
 
 ## Guardrails
 
