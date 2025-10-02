@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+plotly
+altair
+requests
+python-dotenv
+watchdog
+pre-commit
+ruff
+mypy
+pytest
+nbstripout

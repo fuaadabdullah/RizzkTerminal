@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt ruff mypy pytest
+      - run: ruff check .
+      - run: mypy .
+      - run: pytest -q
+      - name: Tar vault with rotate
+        run: |
+          mkdir -p .ci
+          ts=$(date +'%Y%m%d_%H%M%S')
+          tar -czf .ci/obsidian_$ts.tgz obsidian || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obsidian_snapshot
+          path: .ci/obsidian_*.tgz
+          retention-days: 7
