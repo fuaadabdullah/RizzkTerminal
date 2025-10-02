@@ -58,9 +58,7 @@ def add_journal(ts: int, body: str) -> int:
             inserted_id = result.lastrowid
         else:
             result = session.execute(
-                text(
-                    "INSERT INTO journal(ts, body) VALUES (:ts, :body) RETURNING id"
-                ),
+                text("INSERT INTO journal(ts, body) VALUES (:ts, :body) RETURNING id"),
                 {"ts": ts, "body": body},
             )
             inserted_id = result.scalar_one()
@@ -72,9 +70,7 @@ def list_journal(limit: int = 50) -> list[dict[str, Any]]:
     engine = _engine()
     with Session(engine) as session:
         rows = session.execute(
-            text(
-                "SELECT id, ts, body FROM journal ORDER BY id DESC LIMIT :n"
-            ),
+            text("SELECT id, ts, body FROM journal ORDER BY id DESC LIMIT :n"),
             {"n": limit},
         ).mappings()
         return [dict(row) for row in rows]

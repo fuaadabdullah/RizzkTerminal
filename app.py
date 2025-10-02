@@ -8,12 +8,13 @@ from pathlib import Path
 from dash import Dash
 from diskcache import Cache as DiskCache
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify, request
 from flask_caching import Cache
 
 from rizzk.core.data import load_source
 from rizzk.core.db import init as init_db
 from rizzk.core.logging import setup_logger
+from rizzk.core.security import RateLimiter
 from rizzk.web import register
 from rizzk.web.layout import make_layout
 
@@ -22,6 +23,8 @@ ENV_TEMPLATE = (
     "ALPACA_SECRET=\n"
     "RIZZK_VAULT=C:\\Users\\fuaad\\OneDrive\\Documents\\trading_terminal\\vault\n"
     "OPENAI_API_KEY=\n"
+    "HEALTH_RATE_LIMIT=60\n"
+    "HEALTH_RATE_WINDOW=60\n"
 )
 
 
@@ -76,10 +79,18 @@ source = load_source()
 diskcache_backend = DiskCache(str(LONG_TASK_CACHE_DIR))
 register(app, cache, source, diskcache_backend)
 
+health_limiter = RateLimiter(
+    limit=int(os.getenv("HEALTH_RATE_LIMIT", "60")),
+    window_seconds=int(os.getenv("HEALTH_RATE_WINDOW", "60")),
+)
+
 
 @server.get("/health")
 def healthcheck() -> Response:
-    """Return a basic health payload."""
+    """Return a basic health payload with simple rate limiting."""
+    client_id = request.remote_addr or "anonymous"
+    if not health_limiter.allow(client_id):
+        return jsonify({"ok": False, "error": "rate_limited"}), 429
     return jsonify({"ok": True})
 
 

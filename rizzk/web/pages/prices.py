@@ -25,9 +25,7 @@ def register(cache: Cache, source):
             return html.Div([html.P("No price data available.")])
 
         figure = go.Figure()
-        figure.add_trace(
-            go.Scatter(x=frame["date"], y=frame["close"], mode="lines", name=symbol)
-        )
+        figure.add_trace(go.Scatter(x=frame["date"], y=frame["close"], mode="lines", name=symbol))
         figure.update_layout(
             template="plotly_dark",
             margin=dict(l=30, r=30, t=30, b=30),

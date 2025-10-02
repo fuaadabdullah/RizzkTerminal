@@ -1,5 +1,15 @@
 """Core functionality for the Rizzk Terminal."""
 
-from . import data, journal, news, settings, util
+from . import backtest, data, db, flags, journal, news, security, settings, util
 
-__all__ = ["data", "journal", "news", "settings", "util"]
+__all__ = [
+    "backtest",
+    "data",
+    "db",
+    "flags",
+    "journal",
+    "news",
+    "security",
+    "settings",
+    "util",
+]

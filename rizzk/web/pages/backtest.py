@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -38,7 +38,10 @@ def register(app: Dash, task_cache: DiskCache, load_prices: Callable[[str], pd.D
         return html.Div(
             [
                 html.H3("Backtest"),
-                html.P("VWAP cross demo strategy. Executes asynchronously to keep the UI responsive."),
+                html.P(
+                    "VWAP cross demo strategy. "
+                    "Executes asynchronously to keep the UI responsive."
+                ),
                 html.Button("Run Backtest", id="backtest-run", n_clicks=0),
                 html.Div(id="backtest-status", className="backtest-status"),
                 dcc.Store(id="backtest-job"),

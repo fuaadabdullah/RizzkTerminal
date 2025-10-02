@@ -16,7 +16,8 @@ def register():
                 [
                     html.H3("AI Assistant"),
                     html.P(
-                        "OpenAI API key not configured. Add OPENAI_API_KEY to the environment to enable AI features.",
+                        "OpenAI API key not configured. "
+                        "Add OPENAI_API_KEY to the environment to enable AI features.",
                     ),
                 ]
             )

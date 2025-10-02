@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import pandas as pd
 import pandas_ta as ta
@@ -44,7 +44,8 @@ def register(cache: Cache, load_prices, symbols: Iterable[str]):
         return pd.DataFrame(rows)
 
     @cache.memoize(timeout=300)
-    def _build_table(key: str) -> pd.DataFrame:  # key ensures cache invalidation when symbols change
+    def _build_table(key: str) -> pd.DataFrame:
+        """Return cached screener data (key keeps symbols in the cache key)."""
         return _compute_rows()
 
     def render(_: str) -> html.Div:

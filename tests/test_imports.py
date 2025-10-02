@@ -9,6 +9,7 @@ from rizzk.core import (  # noqa: F401
     flags,
     journal,
     news,
+    security,
     settings,
     util,
 )
