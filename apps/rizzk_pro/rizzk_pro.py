@@ -14,9 +14,9 @@ from zoneinfo import ZoneInfo
 
 import altair as alt
 import numpy as np
-import pandas as pd  # type: ignore[import-untyped]
-import plotly.graph_objects as go  # type: ignore[import-untyped]
-import requests  # type: ignore[import-untyped]
+import pandas as pd
+import plotly.graph_objects as go
+import requests
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -610,7 +610,7 @@ with tabs[5]:
     st.subheader("AI Trading Assistant")
     st.caption("Ask about indicators, entries, exits, risk, or how to use this app.")
     try:
-        import openai  # type: ignore[import-not-found]  # legacy SDK 0.28.1
+        import openai  # legacy SDK 0.28.1
 
         openai_available = True
     except ImportError:
