@@ -1,9 +1,11 @@
 streamlit
 pandas
+pandas-stubs
 numpy
 plotly
 altair
 requests
+types-requests
 python-dotenv
 watchdog
 pre-commit

@@ -2,3 +2,6 @@
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
+
+# Always prefer local vault changes during merges to avoid noisy conflicts
+obsidian/** merge=ours

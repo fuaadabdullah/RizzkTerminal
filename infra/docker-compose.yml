@@ -4,23 +4,66 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
-    command: bash -lc "pip install -r requirements.txt && streamlit run apps/rizzk_pro/rizzk_pro.py --server.port=8501 --server.headless=true"
+    command: >-
+      bash -lc "pip install -r requirements.txt && streamlit run apps/rizzk_pro/rizzk_pro.py --server.headless=true --server.port=8501"
+    ports:
+      - "8501:8501"
     volumes:
       - ..:/work
     working_dir: /work
-    ports:
-      - "8501:8501"
     environment:
       - RIZZK_VAULT=/work/obsidian
       - RIZZK_EXPORTS=/work/obsidian/90_exports
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8501 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
   sync:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
-    command: bash -lc "pip install watchdog python-dotenv && python scripts/sync_daemon.py"
+    command: >-
+      bash -lc "pip install watchdog python-dotenv && python scripts/sync_daemon.py"
     volumes:
       - ..:/work
     working_dir: /work
     environment:
       - RIZZK_VAULT=/work/obsidian
       - RIZZK_EXPORTS=/work/obsidian/90_exports
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f sync_daemon.py >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  cron:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: >-
+      bash -lc "pip install -r requirements.txt && python scripts/refresh_data.py --loop"
+    volumes:
+      - ..:/work
+    working_dir: /work
+    environment:
+      - RIZZK_VAULT=/work/obsidian
+      - RIZZK_EXPORTS=/work/obsidian/90_exports
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f refresh_data.py >/dev/null || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
