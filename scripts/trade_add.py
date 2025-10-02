@@ -3,9 +3,15 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import sys
+from pathlib import Path
 
-from apps.rizzk_pro.journal import save_trade
-from apps.rizzk_pro.risk import validate_trade
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from apps.rizzk_pro.journal import save_trade  # noqa: E402
+from apps.rizzk_pro.risk import validate_trade  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

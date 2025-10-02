@@ -129,4 +129,19 @@ If GNU Make is unavailable (e.g., on Windows), install [`just`](https://github.c
 | Alpha Vantage/OpenAI errors | Provide valid API keys via `.env` or the Streamlit sidebar. |
 | Excess exports | Housekeeping in `sync_daemon.py` keeps the newest 500 files; adjust `max_files` if required. |
 
+## Disaster recovery drill
+
+Backups only count once you have restored them. Run this periodically to make sure the workflow still works:
+
+1. Clone the repository into a temp directory: `git clone <repo> _restore_test`.
+2. Download the latest `obsidian_snapshot` artifact from GitHub Actions into `_restore_test/restore.tgz`.
+3. Extract it: `tar -xzf restore.tgz` and confirm `obsidian/` contains your notes.
+4. Remove the temp folder afterwards.
+
+If any step fails, fix the pipeline before trusting the backups.
+
+## Branch policy
+
+Protect `main` with required status checks and at least one code review. Only merge when CI is green so the automation remains trustworthy.
+
 Ship the checklist once—after that you can iterate on code or notes and let the automations keep everything synchronised.
